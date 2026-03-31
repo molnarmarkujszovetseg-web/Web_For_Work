@@ -300,3 +300,39 @@ body {
     color: white;
 }
 .modal-btn-danger:hover { filter: brightness(1.1); box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4); } 
+
+/* =========================================
+   MOBIL OPTIMALIZÁLÁS (Telefonokhoz)
+   ========================================= */
+@media (max-width: 768px) {
+    /* Fejléc és gombok egymás alá rendezése */
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .header h2 {
+        margin-bottom: 15px;
+    }
+
+    .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .controls select {
+        width: 100%;
+        margin-right: 0;
+        padding: 12px;
+        font-size: 16px; /* Ez meggátolja, hogy az iPhone automatikusan belenagyítson */
+    }
+
+    /* A naptár ERŐSZAKOS széthúzása, hogy lehessen görgetni */
+    .calendar-grid {
+        /* Itt fixen megadjuk, hogy az idővonal 50px, a napok pedig MINIMUM 120px szélesek legyenek */
+        grid-template-columns: 50px repeat(7, 120px) !important;
+        padding-bottom: 20px;
+    }
+}
