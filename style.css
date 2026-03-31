@@ -33,10 +33,12 @@ body {
 /* ÚJ NAPTÁR NÉZET - Idővonallal */
 .calendar-grid {
     display: grid;
-    grid-template-columns: 60px repeat(7, 1fr); /* 60px az idővonal, utána a 7 nap */
+    /* ITT A VARÁZSLAT: 1fr helyett megadjuk a minimális 150px szélességet! */
+    grid-template-columns: 60px repeat(7, minmax(150px, 1fr)); 
     gap: 10px;
     align-items: start;
-    overflow-x: auto; /* Ha kicsi a képernyő, lehessen görgetni */
+    overflow-x: auto; /* Ha kicsi a képernyő, vízszintesen görgethető marad */
+    padding-bottom: 15px; /* Hagyunk egy kis helyet alul a görgetősávnak */
 }
 
 /* Az idővonal oszlopa */
