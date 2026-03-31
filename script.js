@@ -1,117 +1,125 @@
-// "Adatbázis" - most már "let", hogy módosíthassuk (törölhessünk belőle), és kaptak egyedi "id"-t
-let mockData = [
-    { id: 1, day: "Hétfő", start: "08:00", end: "16:00", category: "munka", title: "Kódolás" },
-    { id: 2, day: "Hétfő", start: "16:30", end: "18:00", category: "egyeni", title: "Edzés" },
-    { id: 3, day: "Hétfő", start: "22:00", end: "06:00", category: "alvas", title: "Alvás" },
-    { id: 4, day: "Kedd", start: "12:05", end: "13:05", category: "szolgalat", title: "Szállítás boltba" },
-    { id: 5, day: "Kedd", start: "14:00", end: "18:00", category: "munka", title: "Projekt megbeszélés" }
-];
+// --- 1. FIREBASE BEÁLLÍTÁSOK ÉS CSATLAKOZÁS ---
+const firebaseConfig = {
+    apiKey: "AIzaSyCpWQT5k6-GZsVddgXcnpyqa94OQ7HIr90",
+    authDomain: "webforwork.firebaseapp.com",
+    projectId: "webforwork",
+    storageBucket: "webforwork.firebasestorage.app",
+    messagingSenderId: "351047964125",
+    appId: "1:351047964125:web:49bf7a0f5de4c89afb1234",
+    measurementId: "G-L7ZRCY5RJF"
+};
+
+// Inicializáljuk a rendszert
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// --- 2. ADATOK BETÖLTÉSE ÉLŐBEN A FELHŐBŐL ---
+let mockData = []; // Mostantól üresen indul, a Google tölti fel!
+
+// Az onSnapshot folyamatosan figyeli az adatbázist. Ha te vagy a főnököd megnyitja, azonnal frissül!
+db.collection("munkak").onSnapshot((querySnapshot) => {
+    mockData = []; // Kiürítjük a régi listát
+    querySnapshot.forEach((doc) => {
+        let adat = doc.data();
+        adat.id = doc.id; // A Firebase ad neki egy egyedi azonosítót
+        mockData.push(adat);
+    });
+    renderData(); // Újrarajzoljuk a naptárat a friss adatokkal!
+});
 
 const daysOfWeek = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
 
-// Időtartam kiszámítása
+// --- 3. SEGÉDFUNKCIÓK (Idő számolás) ---
 function calculateDuration(start, end) {
     let [startH, startM] = start.split(':').map(Number);
     let [endH, endM] = end.split(':').map(Number);
-    
     if (endH < startH) endH += 24;
-    
     let diffMins = (endH * 60 + endM) - (startH * 60 + startM);
     let hours = Math.floor(diffMins / 60);
     let mins = diffMins % 60;
-    
     if (mins === 0) return `${hours} óra`;
     if (hours === 0) return `${mins} perc`;
     return `${hours} óra ${mins} perc`;
 }
 
-// Időpont átalakítása pixellé
 function timeToPixels(timeStr) {
     let [hh, mm] = timeStr.split(':').map(Number);
-    
-    if (hh < 5 || (hh === 5 && mm < 30)) {
-        hh += 24;
-    }
-    
-    let totalMinutes = (hh - 5) * 60 + (mm - 30);
-    return totalMinutes; 
+    if (hh < 5 || (hh === 5 && mm < 30)) hh += 24;
+    return (hh - 5) * 60 + (mm - 30); 
 }
 
-// Jogosultság (Főnök / Szerkesztő) váltása
 function toggleEditor() {
     const role = document.getElementById("roleSelect").value;
     document.getElementById("editorSection").style.display = role === "edit" ? "block" : "none";
-    // Újrarendereljük a naptárat, hogy az X gombok megjelenjenek vagy eltűnjenek a szerepkörtől függően
     renderData();
 }
 
-// Kategória figyelése (Alvás automatizálás)
 function handleCategoryChange() {
     const category = document.getElementById("editCategory").value;
     const titleInput = document.getElementById("editTitle");
-    
     if (category === "alvas") {
         titleInput.value = "Alvás"; 
         titleInput.disabled = true; 
     } else {
-        if (titleInput.value === "Alvás") {
-            titleInput.value = ""; 
-        }
+        if (titleInput.value === "Alvás") titleInput.value = ""; 
         titleInput.disabled = false; 
     }
 }
 
-// --- ESEMÉNY TÖRLÉSE (MODAL LOGIKA) ---
-let eventIdToDelete = null; // Ide mentjük el átmenetileg, hogy melyik kártyára kattintottál
+// --- 4. ADATBÁZIS MŰVELETEK (HOZZÁADÁS ÉS TÖRLÉS) ---
 
-function deleteEvent(id) {
-    eventIdToDelete = id; // Megjegyezzük az ID-t
-    document.getElementById("deleteModal").style.display = "flex"; // Megjelenítjük a szép ablakot
-}
-
-function closeDeleteModal() {
-    eventIdToDelete = null; // Elfelejtjük az ID-t
-    document.getElementById("deleteModal").style.display = "none"; // Eltüntetjük az ablakot
-}
-
-function confirmDelete() {
-    if (eventIdToDelete !== null) {
-        // Ténylegesen töröljük az adatot
-        mockData = mockData.filter(event => event.id !== eventIdToDelete);
-        renderData(); // Frissítjük a naptárat
-        closeDeleteModal(); // Bezárjuk az ablakot
-    }
-}
-
-// Új bejegyzés hozzáadása
+// Új bejegyzés küldése a Google szerverére
 function addEvent(event) {
     event.preventDefault();
-
     const day = document.getElementById("editDay").value;
     const start = document.getElementById("editStart").value;
     const end = document.getElementById("editEnd").value;
     const category = document.getElementById("editCategory").value;
     const title = document.getElementById("editTitle").value;
 
-    const newEntry = {
-        id: Date.now(), // Egyedi azonosítót generálunk a jelenlegi időbélyeg alapján
+    // db.collection.add -> ez menti el a felhőbe!
+    db.collection("munkak").add({
         day: day,
         start: start,
         end: end,
         category: category,
         title: title
-    };
-
-    mockData.push(newEntry);
-
-    document.getElementById("addEventForm").reset();
-    handleCategoryChange(); 
-    renderData();
+    }).then(() => {
+        // Ha sikeres a mentés, kiürítjük az űrlapot
+        document.getElementById("addEventForm").reset();
+        handleCategoryChange(); 
+    }).catch((error) => {
+        alert("Hiba történt a mentéskor: " + error);
+    });
 }
 
-// Adatok renderelése
+// Törlés modal logikája
+let eventIdToDelete = null;
+
+function deleteEvent(id) {
+    eventIdToDelete = id;
+    document.getElementById("deleteModal").style.display = "flex";
+}
+
+function closeDeleteModal() {
+    eventIdToDelete = null;
+    document.getElementById("deleteModal").style.display = "none";
+}
+
+// Törlés a Google szerveréről
+function confirmDelete() {
+    if (eventIdToDelete !== null) {
+        db.collection("munkak").doc(eventIdToDelete).delete().then(() => {
+            closeDeleteModal();
+        }).catch((error) => {
+            alert("Hiba történt a törléskor: " + error);
+        });
+    }
+}
+
+// --- 5. NAPTÁR KIRAJZOLÁSA ---
 function renderData() {
-    const role = document.getElementById("roleSelect").value; // Megnézzük, hogy szerkesztő-e
+    const role = document.getElementById("roleSelect").value;
     const view = document.getElementById("viewSelect").value;
     const filter = document.getElementById("filterSelect").value;
     
@@ -125,7 +133,6 @@ function renderData() {
         calendarEl.style.display = "grid";
         emailEl.style.display = "none";
         
-        // 1. IDŐVONAL
         let sidebar = document.createElement("div");
         sidebar.className = "time-sidebar";
         
@@ -138,7 +145,6 @@ function renderData() {
         for (let i = 6; i < 6 + 24; i++) {
             let hour = i % 24;
             let topPos = (i - 5) * 60 - 30; 
-            
             if (topPos > 0 && topPos < 1440) {
                 let label = document.createElement("div");
                 label.className = "time-label";
@@ -156,7 +162,6 @@ function renderData() {
         
         calendarEl.appendChild(sidebar);
 
-        // 2. NAPOK
         const dayContainers = {};
         daysOfWeek.forEach(day => {
             let col = document.createElement("div");
@@ -175,7 +180,6 @@ function renderData() {
             calendarEl.appendChild(col);
         });
 
-        // 3. ESEMÉNYEK
         mockData.forEach(event => {
             if (filter === "munka" && event.category !== "munka") return;
             if (filter === "szolgalat" && event.category !== "szolgalat") return;
@@ -183,7 +187,6 @@ function renderData() {
 
             let topPx = timeToPixels(event.start);
             let endPx = timeToPixels(event.end);
-            
             if (endPx <= topPx) endPx += 1440; 
             
             let heightPx = endPx - topPx;
@@ -193,10 +196,8 @@ function renderData() {
             card.className = `event-card cat-${event.category}`;
             
             let cardHTML = `<strong>${event.start}-${event.end}</strong> (${duration})<br>${event.title}`;
-            
-            // Ha Szerkesztő módban vagyunk, hozzáadjuk az X gombot!
             if (role === "edit") {
-                cardHTML += `<span class="delete-btn" onclick="deleteEvent(${event.id})" title="Törlés">×</span>`;
+                cardHTML += `<span class="delete-btn" onclick="deleteEvent('${event.id}')" title="Törlés">×</span>`;
             }
             
             card.innerHTML = cardHTML;
@@ -207,7 +208,6 @@ function renderData() {
         });
 
     } else {
-        // EMAIL NÉZET
         calendarEl.style.display = "none";
         emailEl.style.display = "block";
         
@@ -223,10 +223,8 @@ function renderData() {
             listItem.className = "email-item";
             
             let itemText = `${event.day}: ${displayText} [Kategória: ${event.category}]`;
-            
-            // Ha Szerkesztő módban vagyunk, az Email nézetbe is teszünk egy piros [Törlés] gombot
             if (role === "edit") {
-                listItem.innerHTML = `<span>${itemText}</span> <span onclick="deleteEvent(${event.id})" style="color: #ff4d4d; cursor: pointer; margin-left: 10px; font-weight: bold; font-size: 0.9em;">[Törlés]</span>`;
+                listItem.innerHTML = `<span>${itemText}</span> <span onclick="deleteEvent('${event.id}')" style="color: #ff4d4d; cursor: pointer; margin-left: 10px; font-weight: bold; font-size: 0.9em;">[Törlés]</span>`;
             } else {
                 listItem.innerText = itemText;
             }
@@ -240,9 +238,8 @@ function renderData() {
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     const role = urlParams.get('role'); 
-    
     if (role) {
         document.getElementById("roleSelect").value = role;
     }
-    toggleEditor(); // A toggleEditor már magában hívja a renderData()-t
+    toggleEditor(); 
 };
