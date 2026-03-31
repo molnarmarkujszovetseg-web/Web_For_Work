@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saját Időkövető Naptár</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="header">
+        <h2>Saját Időkövető</h2>
+        <div class="controls">
+            <select id="roleSelect" onchange="toggleEditor()">
+                <option value="boss">Főnök nézet (Csak olvasás)</option>
+                <option value="edit">Szerkesztő nézet</option>
+            </select>
+            <select id="viewSelect" onchange="renderData()">
+                <option value="calendar">Naptár nézet (Vizuális)</option>
+                <option value="email">Email nézet (Lista)</option>
+            </select>
+            <select id="filterSelect" onchange="renderData()">
+                <option value="all">Minden kategória</option>
+                <option value="munka">Csak Munka</option>
+                <option value="szolgalat">Csak Szolgálat</option>
+                <option value="munka_szolgalat">Munka + Szolgálat</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="editor-form" id="editorSection">
+        <h3>Új bejegyzés hozzáadása</h3>
+        <form id="addEventForm" onsubmit="addEvent(event)">
+            <div class="editor-toolbar">
+                
+                <div class="input-group">
+                    <select id="editDay" required>
+                        <option value="Hétfő">Hétfő</option>
+                        <option value="Kedd">Kedd</option>
+                        <option value="Szerda">Szerda</option>
+                        <option value="Csütörtök">Csütörtök</option>
+                        <option value="Péntek">Péntek</option>
+                        <option value="Szombat">Szombat</option>
+                        <option value="Vasárnap">Vasárnap</option>
+                    </select>
+                </div>
+
+                <div class="time-group">
+                    <input type="time" id="editStart" required title="Mettől">
+                    <span class="time-separator">-</span>
+                    <input type="time" id="editEnd" required title="Meddig">
+                </div>
+
+                <div class="input-group">
+                    <select id="editCategory" required onchange="handleCategoryChange()">
+                        <option value="munka">Munka</option>
+                        <option value="szolgalat">Szolgálat</option>
+                        <option value="egyeni">Egyéni</option>
+                        <option value="alvas">Alvás</option>
+                    </select>
+                </div>
+
+                <div class="input-group title-group">
+                    <input type="text" id="editTitle" placeholder="Mivel foglalkoztál? (pl. Szállítás boltba)" required>
+                </div>
+
+                <button type="submit" class="btn-submit">Hozzáadás</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="calendarView" class="calendar-grid"></div>
+
+    <div id="emailView" class="email-view"></div>
+
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-box">
+            <h2 style="color: #ff4d4d; margin-top: 0;">Törlés megerősítése</h2>
+            <p style="color: #ecf0f1; font-size: 1.1rem;">Biztosan törölni szeretnéd ezt a bejegyzést?</p>
+            <div class="modal-buttons" style="margin-top: 25px;">
+                <button onclick="closeDeleteModal()" class="modal-btn modal-btn-cancel">Mégse</button>
+                <button onclick="confirmDelete()" class="modal-btn modal-btn-danger">Törlés</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
